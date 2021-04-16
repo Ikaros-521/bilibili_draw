@@ -9,13 +9,13 @@ var my_loop;
 // 下滑延时 500毫秒 网速/加载速度较慢的朋友们最好放慢速度 提高准确性
 var r_time = 500;
 
-// 转发数
-var forward_num = parseInt(document.getElementsByClassName("text-offset")[1].innerText);
+// 评论数
+var comment_num = parseInt(document.getElementsByClassName("text-offset")[1].innerText);
 
 // 下滑
 function r()
 {
-	window.scroll(0, 1920*forward_num);
+	window.scroll(0, 1920*comment_num);
 	// 没有评论后自动停止下滑 并 抽奖
 	if(document.getElementsByClassName("loading-state")[0].innerText == "没有更多评论")
 	{

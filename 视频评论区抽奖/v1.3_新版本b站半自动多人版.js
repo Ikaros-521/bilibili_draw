@@ -11,13 +11,13 @@ var r_time = 500;
 
 // 评论数
 var comment_num = 1;
-if(document.getElementsByClassName("text-offset")[1].innerText.indexOf("万") != -1)
+if(document.getElementsByClassName("b-head-t")[0].innerText.indexOf("万") != -1)
 {
-	comment_num = 10000 * (parseInt(document.getElementsByClassName("text-offset")[1].innerText) + 1);
+	comment_num = 10000 * (parseInt(document.getElementsByClassName("b-head-t")[0].innerText) + 1);
 }
 else
 {
-	comment_num = parseInt(document.getElementsByClassName("text-offset")[1].innerText);
+	comment_num = parseInt(document.getElementsByClassName("b-head-t")[0].innerText);
 }
 
 // 下滑
@@ -47,10 +47,10 @@ function draw()
     var len = document.getElementsByClassName("con").length;
 	for(var i=0; i<len; i++)
 	{
-		var name = document.getElementsByClassName("con")[i].getElementsByClassName("user")[0].getElementsByTagName("a")[0].innerText;
+		var name = document.getElementsByClassName("list-item reply-wrap")[i].getElementsByClassName("con")[0].getElementsByClassName("user")[0].getElementsByTagName("a")[0].innerText;
+		var id = document.getElementsByClassName("list-item reply-wrap")[i].getElementsByClassName("con")[0].getElementsByClassName("user")[0].getElementsByTagName("a")[0].getAttributeNode("data-usercard-mid").value;
 		// console.log(name+"，加入集合");
 		name_set.add(name);
-		var id = document.getElementsByClassName("con")[i].getElementsByClassName("user")[0].getElementsByTagName("a")[0].getAttributeNode("data-usercard-mid").value;
 		id_set.add(id);
 	}
 	
