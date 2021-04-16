@@ -10,7 +10,15 @@ var my_loop;
 var r_time = 500;
 
 // 转发数
-var forward_num = parseInt(document.getElementsByClassName("text-offset")[1].innerText);
+var forward_num = 1;
+if(document.getElementsByClassName("text-offset")[1].innerText.indexOf("万") != -1)
+{
+	forward_num = 10000 * (parseInt(document.getElementsByClassName("text-offset")[1].innerText) + 1);
+}
+else
+{
+	forward_num = parseInt(document.getElementsByClassName("text-offset")[1].innerText);
+}
 
 // 下滑
 function r()
@@ -48,13 +56,27 @@ function draw()
 	
 	console.log("全部数据加载完毕");
 	console.log("总共"+name_set.size+"名用户");
-	// 生成随机数，直接打印中奖者信息
-	var lucky_num = parseInt(Math.random()*(name_set.size),10);
-	console.log("中奖用户ID为:"+Array.from(id_set)[lucky_num]);
-	console.log("中奖用户名为:"+Array.from(name_set)[lucky_num]);
+	
 	// 这就是注释
 	//return false;
 }
 
+// 获取幸运儿
+function go(num)
+{
+	for(var i=0; i<num; i++)
+	{
+		// 生成随机数，直接打印中奖者信息
+		var lucky_num = parseInt(Math.random()*(name_set.size), 10);
+
+		console.log(" ");
+		console.log("中奖用户ID为:"+Array.from(id_set)[lucky_num]);
+		console.log("中奖用户名为:"+Array.from(name_set)[lucky_num]);
+		console.log(" ");
+	}
+}
+
 // 开始自动下滑 r_time毫秒一次
 my_loop = setInterval(r, r_time);
+
+// 全部数据加载完毕后，使用 go(中奖数) 抽取中奖者
