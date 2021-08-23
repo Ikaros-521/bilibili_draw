@@ -122,7 +122,7 @@ async function get(jquery)
     var first_time = Math.round(new Date());
     var time = 0;
     var url = "";
-    for(var i = 0; i <= (comment-1)/20; i++)
+    for(var i = 0; i <= Math.floor((comment-1)/20); i++)
     {
         if(0 == i)
         {
@@ -138,7 +138,7 @@ async function get(jquery)
 
         // 结束标志位
         var end = 0;
-        if(i == (comment-1)/20) end = 1;
+        if(i == Math.floor((comment-1)/20)) end = 1;
         else end = 0;
 
         console.log("数据组" + i + "，【" + (i*20) + "-" + ((i+1)*20-1) + "】");
@@ -189,17 +189,21 @@ function get_data(url, end)
                 var json = JSON.parse(str2);
                 console.log(json);
 
-                // 一组20个数据
-                for(var i = 0; i < 20; i++)
-                {
-                    // 解析json对象获取对应值
-                    var mid = json["data"].replies[i]["member"]["mid"];
-                    var uname = json["data"].replies[i]["member"]["uname"];
+                // 可能为null
+				if(json["data"].replies != null)
+				{
+					// 一组最多20个数据
+					for(var i = 0; i < json["data"].replies.length; i++)
+					{
+						// 解析json对象获取对应值
+						var mid = json["data"].replies[i]["member"]["mid"];
+						var uname = json["data"].replies[i]["member"]["uname"];
 
-                    // 插入集合
-                    name_set.add(uname);
-                    id_set.add(mid);
-                }
+						// 插入集合
+						name_set.add(uname);
+						id_set.add(mid);
+					}
+				}
 
                 if(1 == end)
                 {

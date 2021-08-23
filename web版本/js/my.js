@@ -2,15 +2,22 @@ console.log("定义集合存储数据");
 let name_set = new Set();
 let id_set = new Set();
 
-var referer = $('#referer').val();
+var referer = "";
 var oid = "";
-var comment = $('#comment').val();
-var num = $('#num').val();
-var jquery = $('#jquery').val();
+var comment = "";
+var num = "";
+var jquery = "";
+var type;
 
 // 抽奖函数
 function draw()
 {
+    referer = $('#referer').val();
+    oid = "";
+    comment = $('#comment').val();
+    num = $('#num').val();
+    jquery = $('#jquery').val();
+
     if(0 == referer.length || 0 == jquery.length || 0 == num.length || 0 == comment.length)
     {
         alert("请填写完整信息！");
@@ -62,7 +69,6 @@ function get_oid(dynamic_id)
 // 提前获取oid
 function oid_init()
 {
-    var referer = $('#referer').val();
     // 动态页
     if("t" == referer.slice(8, 9))
     {
@@ -73,17 +79,10 @@ function oid_init()
     }
 }
 
-// 睡眠多少毫秒
-function sleep(ms)
-{
-    return new Promise(resolve => setTimeout(resolve, ms));
-}
-
 // 抽奖函数 例如：get(331030722370851298386)
-async function get(jquery)
+function get(jquery)
 {
-    var referer = $('#referer').val();
-    var type = 11;
+    type = 11;
 
     if("t" == referer.slice(8, 9)) type = 11;
     else type = 1;
@@ -93,8 +92,6 @@ async function get(jquery)
         alert("请填写完整信息！");
         return;
     }
-
-    await sleep(1000);
 
     var first_time = Math.round(new Date());
     var time = 0;
@@ -120,7 +117,7 @@ async function get(jquery)
         get_data(url, end);
 
         // 睡眠500毫秒 0.5秒
-        await sleep(500);
+        setTimeout("console.log('延时500ms')", 500);
     }
 
     console.log("数据获取完毕！可以调用go(中奖人数)进行抽奖。");

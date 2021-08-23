@@ -1,9 +1,17 @@
 console.log("定义集合存储数据");
+// 存储数据的集合
 let name_set = new Set();
 let id_set = new Set();
 
+// 存储中奖者的数组
+var lucky_index = new Array();
+var lucky_name = new Array();
+var lucky_id = new Array();
+
+// 全局变量
 var oid = "";
 var comment = "";
+var lucky_num = 1;
 
 // 获取动态的oid
 function get_oid(dynamic_id)
@@ -103,8 +111,9 @@ function sleep(ms)
 }
 
 // 抽奖函数 例如：get(331030722370851298386)
-async function get(jquery)
+async function get(jquery, num)
 {
+	lucky_num = num;
     var referer = window.location.href;
     var type = 11;
 
@@ -122,6 +131,9 @@ async function get(jquery)
     var first_time = Math.round(new Date());
     var time = 0;
     var url = "";
+    // 结束标志位
+    var end = 0;
+    
     for(var i = 0; i <= Math.floor((comment-1)/20); i++)
     {
         if(0 == i)
@@ -136,8 +148,6 @@ async function get(jquery)
                 (first_time + i) + "&jsonp=jsonp&next=" + (i + 1) + "&type=" + type + "&oid=" + oid + "&mode=3&plat=1&_=" + time;
         }
 
-        // 结束标志位
-        var end = 0;
         if(i == Math.floor((comment-1)/20)) end = 1;
         else end = 0;
         get_data(url, end);
@@ -145,8 +155,34 @@ async function get(jquery)
         // 睡眠500毫秒 0.5秒
         await sleep(500);
     }
+}
 
-    console.log("数据获取完毕！可以调用go(中奖人数)进行抽奖。");
+// 获取幸运儿
+function go(num)
+{
+	for(var i = 0; i < num; i++)
+	{
+		// 生成随机数，直接打印中奖者信息
+		var random_num = parseInt(Math.random()*(name_set.size), 10);
+
+        var id = Array.from(id_set)[random_num];
+        var name = Array.from(name_set)[random_num];
+        
+        // 数据加入数组
+        lucky_index.push(random_num);
+        lucky_id.push(id);
+        lucky_name.push(name);
+        
+		console.log(" ");
+		console.log("中奖用户ID为:" + id);
+		console.log("中奖用户名为:" + name);
+		console.log(" ");
+
+        id_set.delete(id);
+        name_set.delete(name);
+	}
+	
+	console.table([lucky_index, lucky_id, lucky_name]);
 }
 
 // 数据获取
@@ -187,7 +223,7 @@ function get_data(url, end)
                 var json = JSON.parse(str2);
                 console.log(json);
 
-                // 可能为null
+				// 可能为null
 				if(json["data"].replies != null)
 				{
 					// 一组最多20个数据
@@ -205,7 +241,8 @@ function get_data(url, end)
 
                 if(1 == end)
                 {
-                    console.log("数据获取完毕！可以调用go(中奖人数)进行抽奖。");
+                    console.log("数据获取完毕！开始调用go(中奖人数)进行抽奖。");
+                    go(lucky_num);
                 }
             }
             else
@@ -224,25 +261,4 @@ function get_data(url, end)
     xmlhttp.send();
 }
 
-// 获取幸运儿
-function go(num)
-{
-	for(var i = 0; i < num; i++)
-	{
-		// 生成随机数，直接打印中奖者信息
-		var lucky_num = parseInt(Math.random()*(name_set.size), 10);
-
-        var id = Array.from(id_set)[lucky_num];
-        var name = Array.from(name_set)[lucky_num];
-		console.log(" ");
-		console.log("中奖用户ID为:" + id);
-		console.log("中奖用户名为:" + name);
-		console.log(" ");
-
-        id_set.delete(id);
-        name_set.delete(name);
-	}
-}
-
-console.log("贴入代码后，使用get(jQuery后到_前的约21位字符)函数，生成URL，发送GET请求获取数据");
-console.log("数据获取完毕后，使用go(中奖人数)即可");
+console.log("贴入代码后，使用get(jQuery后到_前的约21位字符, 中奖人数)函数，进行数据获取和抽奖");
