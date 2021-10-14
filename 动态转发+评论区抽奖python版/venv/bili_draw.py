@@ -9,10 +9,12 @@ import sqlite3
 print("*********************************************************************************")
 print("***  欢迎使用 UP：Love丶伊卡洛斯 开发的b站抽奖程序 本程序开源免费          ")
 print("***  请勿使用非本人仓库下载的程序，否则无法保证安全，未知程序谨慎使用        ")
-print("***  本程序目前只支持动态评论的抽奖，视频评论区抽奖有待开发。。。           ")
+print("***  本程序目前只支持动态转发、评论的抽奖，视频评论区抽奖有待开发。。。           ")
 print("***  使用注意：因为涉及本地文件的操作，如果失败，则需要\"超级管理员\"权限运行   ")
 print("***  温馨提示：如果以下内容输错，请重新运行程序，异常数据处理懒得做了0.0     ")
 print("*********************************************************************************")
+# 获取抽奖类型
+draw_type = input("请输入抽奖类型（1评论 0转发）：")
 referer = input("请输入动态链接：")
 lucky_num = input("请输入中奖人数：")
 have_pic = 1
@@ -45,8 +47,7 @@ def config_db():
     sql = "delete from user"
     cur.execute(sql)
 
-
-# 获取oid和评论数函数
+# 获取oid、转发数、评论数函数
 def get_oid(referer):
     if(referer[8] == 't'):
         print('解析为动态页面')
@@ -64,6 +65,7 @@ def get_oid(referer):
     # print(ret)
     json1 = json.loads(ret)
     oid = json1["data"]["card"]["desc"]["rid"]
+    repost = json1["data"]["card"]["desc"]["repost"]
     comment = json1["data"]["card"]["desc"]["comment"]
     # 判断动态类型
     type = json1["data"]["card"]["desc"]["type"]
@@ -73,7 +75,7 @@ def get_oid(referer):
     else:
         have_pic = 0
     # print("oid=" + str(oid))
-    base_info = {'oid': oid, 'comment': comment}
+    base_info = {'oid': oid, 'repost':repost, 'comment': comment}
     return base_info
 
 # 获取用户信息函数
@@ -143,16 +145,62 @@ def get_data(url, end):
             for row in rows:
                 print('\nid:%s  昵称:%s  评论:%s' % (row[0], row[1], row[2]))
 
+# 获取转发用户的数据
+def get_repost_user_info(referer, base_info):
+    print("开始获取用户信息...")
+    dynamic_id = referer[23:len(referer) - 6]
+    temp_num = 0
+    # 根据转发数进行循环
+    while temp_num < int(base_info["repost"]):
+        url = "https://api.live.bilibili.com/dynamic_repost/v1/dynamic_repost/view_repost?dynamic_id="+ \
+              str(dynamic_id) + "&offset=" + str(temp_num);
+        req = urllib.request.urlopen(url)
+        ret = req.read().decode()
+        json1 = json.loads(ret)
+        len1 = len(json1["data"]["comments"])
+        # print(len1)
+        for i in range(len1):
+            uid = json1["data"]["comments"][i]["uid"]
+            uname = json1["data"]["comments"][i]["uname"]
+            comment = json1["data"]["comments"][i]["comment"]
 
-# print(int(round(time.time() * 1000)))
-# 获取oid和评论数
-base_info = get_oid(referer)
-print("oid=" + str(base_info["oid"]))
-print("评论数=" + str(base_info["comment"]))
+            # 数据插入集合
+            # name_set.add(uname)
+            id_set.add(uid)
+            # 数据插入数据库
+            sql = "replace into user(mid, uname, message) values (?, ?, ?)"
+            cur.execute(sql, (uid, uname, comment))
+            con.commit()
+        temp_num += 20
+        time.sleep(0.5)
+    print("数据获取完毕！\n")
+    while len(lucky_set) < int(lucky_num):
+        num = random.randint(0, (len(id_set) - 1))
+        lucky_set.add(num)
+    for i in range(int(lucky_num)):
+        lucky_list = list(lucky_set)
+        # print("lucky_num=" + str(lucky_list[i]))
+        sql = "select * from user limit " + str(lucky_list[i]) + ",1"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            print('\nid:%s  昵称:%s  评论:%s' % (row[0], row[1], row[2]))
+
 # 配置数据库
 config_db()
-# 获取用户信息并抽取幸运用户
-get_user_info(referer, base_info)
+# 获取oid、转发数、评论数
+base_info = get_oid(referer)
+print("oid=" + str(base_info["oid"]))
+print("转发数=" + str(base_info["repost"]))
+print("评论数=" + str(base_info["comment"]))
+
+# 根据抽奖类型进行抽奖
+if(int(draw_type) == 1):
+    # 获取用户信息并抽取幸运用户
+    get_user_info(referer, base_info)
+else:
+    get_repost_user_info(referer, base_info)
+
 # 关闭游标
 cur.close()
 # 断开数据库连接
