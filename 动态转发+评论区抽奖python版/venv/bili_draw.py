@@ -156,9 +156,17 @@ def get_repost_user_info(referer, base_info):
               str(dynamic_id) + "&offset=" + str(temp_num);
         req = urllib.request.urlopen(url)
         ret = req.read().decode()
+
+        # print(ret)
+
         json1 = json.loads(ret)
-        len1 = len(json1["data"]["comments"])
-        # print(len1)
+        len1 = 0
+        if "comments" in ret:
+            len1 = len(json1["data"]["comments"])
+            # print(len1)
+        else:
+            print("可获取的数据结束！\n")
+            break
         for i in range(len1):
             uid = json1["data"]["comments"][i]["uid"]
             uname = json1["data"]["comments"][i]["uname"]
@@ -175,8 +183,13 @@ def get_repost_user_info(referer, base_info):
         time.sleep(0.5)
     print("数据获取完毕！\n")
     while len(lucky_set) < int(lucky_num):
-        num = random.randint(0, (len(id_set) - 1))
-        lucky_set.add(num)
+        num = 0
+        if len(id_set) > 1:
+            num = random.randint(0, (len(id_set) - 1))
+            lucky_set.add(num)
+        else:
+            print('用户数据不足2个，数据异常，程序结束')
+            return
     for i in range(int(lucky_num)):
         lucky_list = list(lucky_set)
         # print("lucky_num=" + str(lucky_list[i]))
