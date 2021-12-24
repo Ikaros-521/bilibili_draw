@@ -122,7 +122,6 @@ def get_data(url, end):
     # json1["data"]["replies"]有可能为null
     if json1["data"]["replies"] is not None:
         len1 = len(json1["data"]["replies"])
-        print("获取" + str(len1) + "个用户的数据...")
         for i in range(len1):
             mid = json1["data"]["replies"][i]["member"]["mid"]
             uname = json1["data"]["replies"][i]["member"]["uname"]
@@ -135,6 +134,9 @@ def get_data(url, end):
             sql = "replace into user(mid, uname, message) values (?, ?, ?)"
             cur.execute(sql, (mid, uname, message))
             con.commit()
+
+        print("已获取" + str(len(id_set)) + "个用户的数据...")
+
 
     # print("插入一组数据组")
 
@@ -195,7 +197,9 @@ def get_repost_user_info(referer, base_info):
             sql = "replace into user(mid, uname, message) values (?, ?, ?)"
             cur.execute(sql, (uid, uname, comment))
             con.commit()
+
         temp_num += 20
+        print("已获取" + str(len(id_set)) + "个用户的数据...")
         time.sleep(0.5)
     print("数据获取完毕！\n")
     while len(lucky_set) < int(lucky_num):
