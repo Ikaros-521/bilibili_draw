@@ -6,6 +6,8 @@ import urllib.request
 import urllib.parse
 import sqlite3
 
+# 打包 venv\Scripts\pyinstaller.exe -F 1.py
+
 print("*********************************************************************************")
 print("***  欢迎使用 UP：Love丶伊卡洛斯 开发的b站抽奖程序 本程序开源免费          ")
 print("***  请勿使用非本人仓库下载的程序，否则无法保证安全，未知程序谨慎使用        ")
@@ -35,6 +37,7 @@ headers1 = {
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.25 Safari/537.36 Core/1.70.3875.400 QQBrowser/10.8.4492.400'
 }
 
+
 # 配置数据库
 def config_db():
     global con, cur
@@ -46,6 +49,7 @@ def config_db():
     # 情况表数据
     sql = "delete from user"
     cur.execute(sql)
+
 
 # 获取oid、转发数、评论数函数
 def get_oid(referer):
@@ -66,7 +70,14 @@ def get_oid(referer):
     json1 = json.loads(ret)
     oid = json1["data"]["card"]["desc"]["rid"]
     repost = json1["data"]["card"]["desc"]["repost"]
-    comment = json1["data"]["card"]["desc"]["comment"]
+
+    tab_type = referer[-1]
+    comment = 0
+    # 非视频动态
+    if tab_type == "2":
+        comment = json1["data"]["card"]["desc"]["comment"]
+    else:
+        comment = 0
     # 判断动态类型
     type = json1["data"]["card"]["desc"]["type"]
     global have_pic
@@ -77,6 +88,7 @@ def get_oid(referer):
     # print("oid=" + str(oid))
     base_info = {'oid': oid, 'repost':repost, 'comment': comment}
     return base_info
+
 
 # 获取用户信息函数
 def get_user_info(referer, base_info):
@@ -100,26 +112,29 @@ def get_user_info(referer, base_info):
         get_data(url, end)
         time.sleep(0.5)
 
+
 # 获取数据函数
 def get_data(url, end):
     req = urllib.request.urlopen(url)
     ret = req.read().decode()
     # print(ret)
     json1 = json.loads(ret)
-    len1 = len(json1["data"]["replies"])
-    # print(len1)
-    for i in range(len1):
-        mid = json1["data"]["replies"][i]["member"]["mid"]
-        uname = json1["data"]["replies"][i]["member"]["uname"]
-        message = json1["data"]["replies"][i]["content"]["message"]
+    # json1["data"]["replies"]有可能为null
+    if json1["data"]["replies"] is not None:
+        len1 = len(json1["data"]["replies"])
+        print("获取" + str(len1) + "个用户的数据...")
+        for i in range(len1):
+            mid = json1["data"]["replies"][i]["member"]["mid"]
+            uname = json1["data"]["replies"][i]["member"]["uname"]
+            message = json1["data"]["replies"][i]["content"]["message"]
 
-        # 数据插入集合
-        # name_set.add(uname)
-        id_set.add(mid)
-        # 数据插入数据库
-        sql = "replace into user(mid, uname, message) values (?, ?, ?)"
-        cur.execute(sql, (mid, uname, message))
-        con.commit()
+            # 数据插入集合
+            # name_set.add(uname)
+            id_set.add(mid)
+            # 数据插入数据库
+            sql = "replace into user(mid, uname, message) values (?, ?, ?)"
+            cur.execute(sql, (mid, uname, message))
+            con.commit()
 
     # print("插入一组数据组")
 
@@ -144,6 +159,7 @@ def get_data(url, end):
             rows = cur.fetchall()
             for row in rows:
                 print('\nid:%s  昵称:%s  评论:%s' % (row[0], row[1], row[2]))
+
 
 # 获取转发用户的数据
 def get_repost_user_info(referer, base_info):
@@ -198,6 +214,7 @@ def get_repost_user_info(referer, base_info):
         rows = cur.fetchall()
         for row in rows:
             print('\nid:%s  昵称:%s  评论:%s' % (row[0], row[1], row[2]))
+
 
 # 配置数据库
 config_db()
