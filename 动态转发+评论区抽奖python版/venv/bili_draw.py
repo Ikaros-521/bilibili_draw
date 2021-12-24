@@ -15,11 +15,50 @@ print("***  本程序目前只支持动态转发、评论的抽奖，视频评�
 print("***  使用注意：因为涉及本地文件的操作，如果失败，则需要\"超级管理员\"权限运行   ")
 print("***  温馨提示：如果以下内容输错，请重新运行程序，异常数据处理懒得做了0.0     ")
 print("*********************************************************************************")
+
+
 # 获取抽奖类型
-draw_type = input("请输入抽奖类型（1评论 0转发）：")
-referer = input("请输入动态链接：")
-lucky_num = input("请输入中奖人数：")
+global draw_type
+global referer
+global lucky_num
 have_pic = 1
+
+
+# 字符串是否是数字
+def is_number(s):
+    try:
+        float(s)
+        return True
+    except ValueError:
+        pass
+
+    try:
+        import unicodedata
+        unicodedata.numeric(s)
+        return True
+    except (TypeError, ValueError):
+        pass
+
+    return False
+
+
+while True:
+    draw_type = input("请输入抽奖类型（1评论 0转发）：")
+    if draw_type != '0' and draw_type != '1':
+        print("请输入0或1")
+        continue
+    referer = input("请输入动态链接：")
+    if not referer.startswith('https://t.bilibili.com'):
+        print("动态链接地址不正确，请重新输入")
+        continue
+    lucky_num = input("请输入中奖人数：")
+    if not is_number(lucky_num):
+        print("请输入正确的中奖人数")
+        continue
+    if int(float(lucky_num)) > 0:
+        break
+    else:
+        print("请输入正确的中奖人数")
 
 id_set = set()
 name_set = set()
@@ -33,7 +72,7 @@ headers1 = {
     'Content-Type': 'text/plain;charset=UTF-8',
     'Referer': referer,
     'origin': 'https://t.bilibili.com',
-    #'cookie': 'l=v',
+    # 'cookie': 'l=v',
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.25 Safari/537.36 Core/1.70.3875.400 QQBrowser/10.8.4492.400'
 }
 
@@ -53,17 +92,23 @@ def config_db():
 
 # 获取oid、转发数、评论数函数
 def get_oid(referer):
-    if(referer[8] == 't'):
+    if (referer[8] == 't'):
         print('解析为动态页面')
     else:
         print('解析为视频页面')
 
-    dynamic_id = referer[23:len(referer)-6]
+    dynamic_id = referer[23:len(referer) - 6]
     print("dynamic_id=" + dynamic_id)
+
+    if len(dynamic_id) == 0:
+        print("dynamic_id异常，程序终止，请检查您的输入是否有误！")
+        base_info = {'ret': False}
+        return base_info
+
     payload = {'dynamic_id': dynamic_id}
     data = urllib.parse.urlencode(payload)
 
-    req = urllib.request.urlopen('https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/get_dynamic_detail?%s'%data)
+    req = urllib.request.urlopen('https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/get_dynamic_detail?%s' % data)
     ret = req.read().decode()
 
     # print(ret)
@@ -86,7 +131,7 @@ def get_oid(referer):
     else:
         have_pic = 0
     # print("oid=" + str(oid))
-    base_info = {'oid': oid, 'repost':repost, 'comment': comment}
+    base_info = {'ret': True, 'oid': oid, 'repost': repost, 'comment': comment}
     return base_info
 
 
@@ -97,7 +142,7 @@ def get_user_info(referer, base_info):
         type = 11
     else:
         type = 17
-        base_info["oid"] = referer[23:len(referer)-6]
+        base_info["oid"] = referer[23:len(referer) - 6]
     end = 0
     for i in range(int((base_info["comment"] - 1) / 20) + 1):
         if i == 0:
@@ -137,7 +182,6 @@ def get_data(url, end):
 
         print("已获取" + str(len(id_set)) + "个用户的数据...")
 
-
     # print("插入一组数据组")
 
     if end == 1:
@@ -170,7 +214,7 @@ def get_repost_user_info(referer, base_info):
     temp_num = 0
     # 根据转发数进行循环
     while temp_num < int(base_info["repost"]):
-        url = "https://api.live.bilibili.com/dynamic_repost/v1/dynamic_repost/view_repost?dynamic_id="+ \
+        url = "https://api.live.bilibili.com/dynamic_repost/v1/dynamic_repost/view_repost?dynamic_id=" + \
               str(dynamic_id) + "&offset=" + str(temp_num);
         req = urllib.request.urlopen(url)
         ret = req.read().decode()
@@ -224,23 +268,25 @@ def get_repost_user_info(referer, base_info):
 config_db()
 # 获取oid、转发数、评论数
 base_info = get_oid(referer)
-print("oid=" + str(base_info["oid"]))
-print("转发数=" + str(base_info["repost"]))
-print("评论数=" + str(base_info["comment"]))
 
-# 根据抽奖类型进行抽奖
-if(int(draw_type) == 1):
-    # 获取用户信息并抽取幸运用户
-    get_user_info(referer, base_info)
-else:
-    get_repost_user_info(referer, base_info)
+if base_info["ret"]:
+    print("oid=" + str(base_info["oid"]))
+    print("转发数=" + str(base_info["repost"]))
+    print("评论数=" + str(base_info["comment"]))
 
-# 关闭游标
-cur.close()
-# 断开数据库连接
-con.close()
+    # 根据抽奖类型进行抽奖
+    if (int(draw_type) == 1):
+        # 获取用户信息并抽取幸运用户
+        get_user_info(referer, base_info)
+    else:
+        get_repost_user_info(referer, base_info)
 
-print("\n程序运行完毕！")
-quit = 0
-while quit != "1":
-    quit = input("是否关闭程序(是1，否0)：")
+    # 关闭游标
+    cur.close()
+    # 断开数据库连接
+    con.close()
+
+    print("\n程序运行完毕！")
+    quit = 0
+    while quit != "1":
+        quit = input("是否关闭程序(是1，否0)：")
