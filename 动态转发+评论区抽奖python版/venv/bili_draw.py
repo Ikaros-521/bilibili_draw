@@ -64,6 +64,8 @@ id_set = set()
 name_set = set()
 lucky_set = set()
 
+dynamic_id = ""
+
 headers1 = {
     'Accept': 'application/json, text/plain, */*',
     'Accept-Encoding': 'gzip, deflate, br',
@@ -97,7 +99,15 @@ def get_oid(referer):
     else:
         print('解析为视频页面')
 
-    dynamic_id = referer[23:len(referer) - 6]
+    tab_type = "2"
+
+    # 用户输入是否是完整复制动态链接，链接尾部 是否是 ?tab=2
+    if referer[-6:-1] == "?tab=":
+        dynamic_id = referer[23:len(referer) - 6]
+        tab_type = referer[-1]
+    else:
+        dynamic_id = referer[23:len(referer)]
+
     print("dynamic_id=" + dynamic_id)
 
     if len(dynamic_id) == 0:
@@ -116,7 +126,6 @@ def get_oid(referer):
     oid = json1["data"]["card"]["desc"]["rid"]
     repost = json1["data"]["card"]["desc"]["repost"]
 
-    tab_type = referer[-1]
     comment = 0
     # 非视频动态
     if tab_type == "2":
@@ -142,7 +151,11 @@ def get_user_info(referer, base_info):
         type = 11
     else:
         type = 17
-        base_info["oid"] = referer[23:len(referer) - 6]
+        # 用户输入是否是完整复制动态链接，链接尾部 是否是 ?tab=2
+        if referer[-6:-1] == "?tab=":
+            base_info["oid"] = referer[23:len(referer) - 6]
+        else:
+            base_info["oid"] = referer[23:len(referer)]
     end = 0
     for i in range(int((base_info["comment"] - 1) / 20) + 1):
         if i == 0:
@@ -210,7 +223,13 @@ def get_data(url, end):
 # 获取转发用户的数据
 def get_repost_user_info(referer, base_info):
     print("开始获取用户信息...")
-    dynamic_id = referer[23:len(referer) - 6]
+
+    # 用户输入是否是完整复制动态链接，链接尾部 是否是 ?tab=2
+    if referer[-6:-1] == "?tab=":
+        dynamic_id = referer[23:len(referer) - 6]
+    else:
+        dynamic_id = referer[23:len(referer)]
+
     temp_num = 0
     # 根据转发数进行循环
     while temp_num < int(base_info["repost"]):
@@ -219,6 +238,7 @@ def get_repost_user_info(referer, base_info):
         req = urllib.request.urlopen(url)
         ret = req.read().decode()
 
+        # print(url)
         # print(ret)
 
         json1 = json.loads(ret)
@@ -274,7 +294,7 @@ if base_info["ret"]:
     print("转发数=" + str(base_info["repost"]))
     print("评论数=" + str(base_info["comment"]))
 
-    # 根据抽奖类型进行抽奖
+    # 根据抽奖类型进行抽奖 1评论 0转发
     if (int(draw_type) == 1):
         # 获取用户信息并抽取幸运用户
         get_user_info(referer, base_info)
