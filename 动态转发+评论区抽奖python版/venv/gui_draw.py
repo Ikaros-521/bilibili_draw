@@ -99,11 +99,15 @@ def get_oid():
     tab_type = "2"
 
     # 用户输入是否是完整复制动态链接，链接尾部 是否是 ?tab=2
-    if referer[-6:-1] == "?tab=":
-        dynamic_id = referer[23:len(referer) - 6]
-        tab_type = referer[-1]
-    else:
-        dynamic_id = referer[23:len(referer)]
+    # if referer[-6:-1] == "?tab=":
+    #     dynamic_id = referer[23:len(referer) - 6]
+    #     tab_type = referer[-1]
+    # else:
+    #     dynamic_id = referer[23:len(referer)]
+
+    temp = referer.split('?')
+    temp2 = temp[0].split('/')
+    dynamic_id = temp2[3]
 
     # print("dynamic_id=" + dynamic_id)
     text_str = "dynamic_id=" + dynamic_id + "\n"
@@ -118,27 +122,32 @@ def get_oid():
         base_info = {'ret': False}
         return base_info
 
-    payload = {'dynamic_id': dynamic_id}
+    # payload = {'dynamic_id': dynamic_id}
+    payload = { 'timezone_offset': '-480', 'id': dynamic_id}
     data = urllib.parse.urlencode(payload)
+    # print(data)
 
-    req = urllib.request.urlopen('https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/get_dynamic_detail?%s' % data)
+    req = urllib.request.urlopen('https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?%s' % data)
+    # req = urllib.request.urlopen('https://api.vc.bilibili.com/dynamic_svr/v1/dynamic_svr/get_dynamic_detail?%s' % data)
     ret = req.read().decode()
 
     # print(ret)
     json1 = json.loads(ret)
-    oid = json1["data"]["card"]["desc"]["rid"]
-    repost = json1["data"]["card"]["desc"]["repost"]
+    oid = json1["data"]["item"]["basic"]["comment_id_str"]
+    repost = json1["data"]["item"]["modules"]["module_stat"]["forward"]["count"]
+    # oid = json1["data"]["card"]["desc"]["rid"]
+    # repost = json1["data"]["card"]["desc"]["repost"]
 
     comment = 0
     # 非视频动态
     if tab_type == "2":
-        comment = json1["data"]["card"]["desc"]["comment"]
+        comment = json1["data"]["item"]["modules"]["module_stat"]["comment"]["count"]
     else:
         comment = 0
     # 判断动态类型
-    type = json1["data"]["card"]["desc"]["type"]
+    type = json1["data"]["item"]["basic"]["comment_type"]
     global have_pic
-    if int(type) == 2:
+    if int(type) == 11:
         have_pic = 1
     else:
         have_pic = 0
@@ -251,10 +260,14 @@ def get_repost_user_info(base_info):
     text.update()
 
     # 用户输入是否是完整复制动态链接，链接尾部 是否是 ?tab=2
-    if referer[-6:-1] == "?tab=":
-        dynamic_id = referer[23:len(referer) - 6]
-    else:
-        dynamic_id = referer[23:len(referer)]
+    # if referer[-6:-1] == "?tab=":
+    #     dynamic_id = referer[23:len(referer) - 6]
+    # else:
+    #     dynamic_id = referer[23:len(referer)]
+
+    temp = referer.split('?')
+    temp2 = temp[0].split('/')
+    dynamic_id = temp2[3]
 
     temp_num = 0
     # 根据转发数进行循环
@@ -292,7 +305,7 @@ def get_repost_user_info(base_info):
             con.commit()
 
         temp_num += 20
-        print("已获取" + str(len(id_set)) + "个用户的数据...")
+        # print("已获取" + str(len(id_set)) + "个用户的数据...")
         text_str = "已获取" + str(len(id_set)) + "个用户的数据...\n"
         text.insert(tkinter.INSERT, text_str)
         text.update()
@@ -422,7 +435,7 @@ def clear_out():
 
 window = tkinter.Tk()
 window.title("b站动态抽奖程序")
-window.geometry("1000x800+200+100")
+window.geometry("1000x900+200+100")
 # 菜单栏
 menu = tkinter.Menu(window)
 # Open放在菜单栏中，就是装入容器
@@ -451,6 +464,7 @@ l2 = tkinter.Label(frame_t, text='动态链接：', width=10, font=('microsoft y
 l3 = tkinter.Label(frame_t, text='中奖人数：', width=10, font=('microsoft yahei', 16))
 
 radio = tkinter.IntVar()
+radio.set(1)
 radio1 = tkinter.Radiobutton(frame_t, text="评论", font=('microsoft yahei', 16), width=10, justify='left', value=1,
                              variable=radio, command=radio_click, padx=1)
 radio1.grid(row=0, column=1)
@@ -491,3 +505,4 @@ scroll.config(command=text.yview)
 text.config(yscrollcommand=scroll.set)
 
 window.mainloop()
+
