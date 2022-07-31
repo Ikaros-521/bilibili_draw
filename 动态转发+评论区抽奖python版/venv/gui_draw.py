@@ -18,10 +18,10 @@ global referer
 global lucky_num
 global dynamic_id
 global text_str
-# 是否带图动态
-global have_pic
+# 动态类型
+global api_type
 
-have_pic = 1
+api_type = 11
 draw_type = 1
 dynamic_id = ""
 # 打印文本框
@@ -85,6 +85,7 @@ def config_db():
 def get_oid():
     global text_str
     global dynamic_id
+    global api_type
     if referer[8] == 't':
         # print('解析为动态页面')
         text_str = "解析为动态页面\n"
@@ -145,28 +146,22 @@ def get_oid():
     else:
         comment = 0
     # 判断动态类型
-    type = json1["data"]["item"]["basic"]["comment_type"]
-    global have_pic
-    if int(type) == 11:
-        have_pic = 1
-    else:
-        have_pic = 0
+    api_type = json1["data"]["item"]["basic"]["comment_type"]
     # print("oid=" + str(oid))
     base_info = {'ret': True, 'oid': oid, 'repost': repost, 'comment': comment}
+    # print(base_info)
     return base_info
 
 
 # 获取用户信息函数
 def get_user_info(base_info):
     global text_str
+    global api_type
     # print("开始获取用户信息...")
     text_str = "开始获取用户信息...\n"
     text.insert(tkinter.INSERT, text_str)
     text.update()
-    if int(have_pic) == 1:
-        api_type = 11
-    else:
-        api_type = 17
+    if int(api_type) == 17:
         # 用户输入是否是完整复制动态链接，链接尾部 是否是 ?tab=2
         if referer[-6:-1] == "?tab=":
             base_info["oid"] = referer[23:len(referer) - 6]
@@ -189,6 +184,7 @@ def get_user_info(base_info):
 
 # 获取数据函数
 def get_data(url, end):
+    print(url)
     global text_str
     req = urllib.request.urlopen(url)
     ret = req.read().decode()
