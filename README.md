@@ -3,6 +3,12 @@
 由于b站API一直在变动，导致旧版本程序没法使用，请转至新版本 js融合版 或 releases里的python gui版本  
 程序都是由JavaScript编写，运行方法都是在浏览器中打开“开发者工具”（快捷键F12），在“console”中贴入代码，回车运行。具体使用方法可以参考各个文件夹目录内的README.md文档，也有对应的博客可以在百度搜索。
 
+## 视频 评论区 开奖
+
+<a href="https://greasyfork.org/zh-CN/scripts/458547" target="_blank">b站视频评论区开奖脚本-v0.3（这是一个油猴插件）</a>
+
+<a href="https://ikaros.blog.csdn.net/article/details/120727386" target="_blank">python b站动态转发、动态评论区抽奖（已打包成exe，可以下载食用）（主要维护的博文）</a>
+
 ## 视频链接
 
 <a href="https://www.bilibili.com/video/BV1Zp4y1Q7yH" target="_blank">b站“动态抽奖” 较公平方案 讲解</a>
