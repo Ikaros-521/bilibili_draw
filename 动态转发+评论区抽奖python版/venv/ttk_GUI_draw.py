@@ -12,7 +12,7 @@ from ttkbootstrap.scrolled import ScrolledText
 
 # python版本：3.8.5
 # 打包 pyinstaller -F 1.py
-# ttk打包 使用auto-py-to-exe，加载ttkbootstrap路径，打包成文件夹
+# ttk打包 使用auto-py-to-exe，--paths加载ttkbootstrap路径，打包成文件夹
 
 # 获取抽奖类型
 global draw_type
@@ -133,7 +133,6 @@ def get_oid():
     ret = requests.get(API_URL, headers=headers1)
     json1 = ret.json()
 
-
     # print(ret)
     # json1 = json.loads(ret)
     oid = json1["data"]["item"]["basic"]["comment_id_str"]
@@ -151,7 +150,7 @@ def get_oid():
     api_type = json1["data"]["item"]["basic"]["comment_type"]
     # print("oid=" + str(oid))
     base_info = {'ret': True, 'oid': oid, 'repost': repost, 'comment': comment}
-    # print(base_info)
+    print(base_info)
     return base_info
 
 
@@ -165,12 +164,6 @@ def get_user_info(base_info):
     text_str = "开始获取用户信息...\n"
     text.insert(END, text_str)
     text.update()
-    if int(api_type) == 17:
-        # 用户输入是否是完整复制动态链接，链接尾部 是否是 ?tab=2
-        if referer[-6:-1] == "?tab=":
-            base_info["oid"] = referer[23:len(referer) - 6]
-        else:
-            base_info["oid"] = referer[23:len(referer)]
     end = 0
     for i in range(int((base_info["comment"] - 1) / 20) + 1):
         if i == 0:
@@ -193,7 +186,13 @@ def get_data(url, end):
     global text
 
     ret = requests.get(url, headers=headers1)
-    json1 = ret.json()
+    try:
+        json1 = ret.json()
+    except (KeyError, TypeError, IndexError) as e:
+        text_str = e + "\n调用api.bilibili.com/x/v2/reply/main 接口返回数据JSON化失败，可尝试重试，若仍不行，则可能是接口变更导致\n"
+        text.insert(END, text_str)
+        text.update()
+        return
 
     # json1["data"]["replies"]有可能为null
     if json1["data"]["replies"] is not None:
@@ -276,9 +275,19 @@ def get_repost_user_info(base_info):
     # 根据转发数进行循环
     while temp_num < int(base_info["repost"]):
         API_URL = 'https://api.live.bilibili.com/dynamic_repost/v1/dynamic_repost/view_repost?dynamic_id=' + \
-              str(dynamic_id) + "&offset=" + str(temp_num)
+                  str(dynamic_id) + "&offset=" + str(temp_num)
         ret = requests.get(API_URL, headers=headers1)
-        json1 = ret.json()
+
+        # print(ret.text)
+        try:
+            json1 = ret.json()
+        except (KeyError, TypeError, IndexError) as e:
+            text_str = e + "\n调用api.live.bilibili.com/dynamic_repost/v1/dynamic_repost/view_repost " \
+                           "接口返回数据JSON化失败，可尝试重试，若仍不行，则可能是接口变更导致\n "
+            text.insert(END, text_str)
+            text.update()
+            return
+
         ret = ret.text
 
         # print(url)
