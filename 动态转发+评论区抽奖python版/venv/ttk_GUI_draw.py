@@ -92,7 +92,11 @@ def get_oid():
     global api_type
     global text
 
-    if referer[8] == 't':
+    if 'opus' in referer:
+        text_str = "解析为动态页面\n"
+        text.insert(END, text_str)
+        text.update()
+    elif referer[8] == 't':
         # print('解析为动态页面')
         text_str = "解析为动态页面\n"
         text.insert(END, text_str)
@@ -114,7 +118,7 @@ def get_oid():
 
     temp = referer.split('?')
     temp2 = temp[0].split('/')
-    dynamic_id = temp2[3]
+    dynamic_id = temp2[-1].strip()
 
     # print("dynamic_id=" + dynamic_id)
     text_str = "dynamic_id=" + dynamic_id + "\n"
@@ -132,8 +136,7 @@ def get_oid():
     API_URL = 'https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?timezone_offset=-480&id=' + dynamic_id
     ret = requests.get(API_URL, headers=headers1)
     json1 = ret.json()
-
-    # print(ret)
+    print(ret.text)
     # json1 = json.loads(ret)
     oid = json1["data"]["item"]["basic"]["comment_id_str"]
     repost = json1["data"]["item"]["modules"]["module_stat"]["forward"]["count"]
@@ -188,8 +191,8 @@ def get_data(url, end):
     ret = requests.get(url, headers=headers1)
     try:
         json1 = ret.json()
-    except (KeyError, TypeError, IndexError) as e:
-        text_str = e + "\n调用api.bilibili.com/x/v2/reply/main 接口返回数据JSON化失败，可尝试重试，若仍不行，则可能是接口变更导致\n"
+    except Exception as e:
+        text_str = str(e) + "\n调用api.bilibili.com/x/v2/reply/main 接口返回数据JSON化失败，可尝试重试，若仍不行，则可能是接口变更导致\n"
         text.insert(END, text_str)
         text.update()
         return
@@ -377,7 +380,7 @@ def start_btn():
         lucky_num = int(StringVar2.get())
     # print('referer:' + referer)
     # print('lucky_num:' + str(lucky_num))
-    if not referer.startswith('https://t.bilibili.com'):
+    if not referer.startswith('https://t.bilibili.com') and not referer.startswith('https://www.bilibili.com/opus'):
         # print("动态链接地址不正确，请重新输入")
         text_str = "动态链接地址不正确，请重新输入!!!\n"
         text.insert(END, text_str)
