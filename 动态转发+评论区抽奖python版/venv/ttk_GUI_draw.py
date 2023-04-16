@@ -91,7 +91,43 @@ def get_oid():
     global dynamic_id
     global api_type
     global text
+    global draw_type
 
+    # 专栏
+    if 'read/cv' in referer:
+        text_str = "解析为专栏页面\n"
+        text.insert(END, text_str)
+        text.update()
+
+        temp = referer.split('read/cv')
+        oid = int(temp[1])
+
+        API_URL = 'https://api.bilibili.com/x/article/viewinfo?id=' + str(oid) + '&mobi_app=pc&from=web'
+        ret = requests.get(API_URL, headers=headers1)
+        try:
+            json1 = ret.json()
+            # print(ret.text)
+
+            if json1['code'] != 0:
+                text_str = "请求出错，运行结束\n"
+                text.insert(END, text_str)
+                text.update()
+
+                base_info = {'ret': False}
+                return base_info
+
+            base_info = {'ret': True, 'oid': oid, 'repost': json1['data']['stats']['share'],
+                         'comment': json1['data']['stats']['reply']}
+            print(base_info)
+        except Exception as e:
+            text.insert(END, str(e))
+            text.update()
+            base_info = {'ret': False}
+
+        # 设置抽奖类型为 专栏评论
+        draw_type = 2
+
+        return base_info
     if 'opus' in referer:
         text_str = "解析为动态页面\n"
         text.insert(END, text_str)
@@ -287,7 +323,7 @@ def get_repost_user_info(base_info):
         # print(ret.text)
         try:
             json1 = ret.json()
-        except (KeyError, TypeError, IndexError) as e:
+        except Exception as e:
             text_str = e + "\n调用api.live.bilibili.com/dynamic_repost/v1/dynamic_repost/view_repost " \
                            "接口返回数据JSON化失败，可尝试重试，若仍不行，则可能是接口变更导致\n "
             text.insert(END, text_str)
@@ -360,6 +396,104 @@ def get_repost_user_info(base_info):
     text.update()
 
 
+# 获取专栏评论的用户数据
+def get_cv_user_info(base_info):
+    global text_str
+    global text
+
+    print("开始获取用户信息...")
+    text_str = "开始获取用户信息...\n"
+    text.insert(END, text_str)
+    text.update()
+
+    temp_num = 1
+    # 根据转发数进行循环
+    while temp_num < int(base_info["comment"]):
+        API_URL = 'https://api.bilibili.com/x/v2/reply/main?jsonp=jsonp&type=12&mode=3&plat=1&oid=' + \
+                  str(base_info['oid']) + "&next=" + str(temp_num)
+
+        print(API_URL)
+
+        ret = requests.get(API_URL, headers=headers1)
+
+        # print(ret.text)
+        try:
+            json1 = ret.json()
+        except Exception as e:
+            text_str = e + "\n调用api.bilibili.com/x/v2/reply/main " \
+                           "接口返回数据JSON化失败，可尝试重试，若仍不行，则可能是接口变更导致\n "
+            text.insert(END, text_str)
+            text.update()
+            return
+
+        ret = ret.text
+
+        # print(url)
+        # print(ret)
+
+        # 评论数
+        len1 = 0
+        if len(json1["data"]["replies"]) > 0:
+            len1 = len(json1["data"]["replies"])
+            # print("comments=" + str(len1))
+        else:
+            print("可获取的数据结束！\n")
+            text_str = "可获取的数据结束！\n"
+            text.insert(END, text_str)
+            text.update()
+            break
+        for i in range(len1):
+            uid = json1["data"]["replies"][i]["member"]["mid"]
+            uname = json1["data"]["replies"][i]["member"]["uname"]
+            comment = json1["data"]["replies"][i]["content"]["message"]
+
+            # 数据插入集合
+            # name_set.add(uname)
+            id_set.add(uid)
+            # 数据插入数据库
+            sql = "replace into user(mid, uname, message) values (?, ?, ?)"
+            cur.execute(sql, (uid, uname, comment))
+            con.commit()
+
+        temp_num += 1
+        # print("已获取" + str(len(id_set)) + "个用户的数据...")
+        text_str = "已获取" + str(len(id_set)) + "个用户的数据...\n"
+        text.insert(END, text_str)
+        text.update()
+        time.sleep(0.5)
+
+    print("数据获取完毕！\n")
+    text_str = "数据获取完毕！\n"
+    text.insert(END, text_str)
+    text.update()
+    while len(lucky_set) < int(lucky_num):
+        num = 0
+        if len(id_set) > 1:
+            num = random.randint(0, (len(id_set) - 1))
+            lucky_set.add(num)
+        else:
+            print('用户数据不足2个，数据异常，程序结束')
+            text_str = "用户数据不足2个，数据异常，程序结束\n"
+            text.insert(END, text_str)
+            text.update()
+            return
+    for i in range(int(lucky_num)):
+        lucky_list = list(lucky_set)
+        # print("lucky_num=" + str(lucky_list[i]))
+        sql = "select * from user limit " + str(lucky_list[i]) + ",1"
+        cur.execute(sql)
+        rows = cur.fetchall()
+        for row in rows:
+            print('\nid:%s  昵称:%s  评论:%s' % (row[0], row[1], row[2]))
+            text_str = '\nid:%s  昵称:%s  评论:%s' % (row[0], row[1], row[2]) + '\n'
+            text.insert(END, text_str)
+            text.update()
+
+    text_str = '\n\n'
+    text.insert(END, text_str)
+    text.update()
+
+
 # 单选框点击
 def radio_click():
     global draw_type
@@ -383,9 +517,10 @@ def start_btn():
         lucky_num = int(StringVar2.get())
     # print('referer:' + referer)
     # print('lucky_num:' + str(lucky_num))
-    if not referer.startswith('https://t.bilibili.com') and not referer.startswith('https://www.bilibili.com/opus'):
+    if not referer.startswith('https://t.bilibili.com') and not referer.startswith('https://www.bilibili.com/opus') \
+            and not referer.startswith('https://www.bilibili.com/read/cv'):
         # print("动态链接地址不正确，请重新输入")
-        text_str = "动态链接地址不正确，请重新输入!!!\n"
+        text_str = "链接地址不正确，请重新输入!!!\n"
         text.insert(END, text_str)
         text.update()
         return
@@ -418,7 +553,7 @@ def start_btn():
         text.insert(END, text_str)
         text.update()
 
-        # 根据抽奖类型进行抽奖 1评论 0转发
+        # 根据抽奖类型进行抽奖 1评论 0转发 2专栏评论
         if int(draw_type) == 1:
             if int(lucky_num) > int(base_info["comment"]):
                 text_str = "请输入正确的中奖人数!!!\n"
@@ -431,6 +566,18 @@ def start_btn():
                 return
             # 获取用户信息并抽取幸运用户
             get_user_info(base_info)
+        elif int(draw_type) == 2:
+            if int(lucky_num) > int(base_info["comment"]):
+                text_str = "请输入正确的中奖人数!!!\n"
+                text.insert(END, text_str)
+                text.update()
+                # 关闭游标
+                cur.close()
+                # 断开数据库连接
+                con.close()
+                return
+            # 获取用户信息并抽取幸运用户
+            get_cv_user_info(base_info)
         else:
             if int(lucky_num) > int(base_info["repost"]):
                 text_str = "请输入正确的中奖人数!!!\n"
@@ -449,7 +596,7 @@ def start_btn():
         con.close()
 
 
-app = ttk.Window(title='b站动态抽奖程序', themename='litera', iconphoto='', size=[900, 600], position=None, minsize=None)
+app = ttk.Window(title='b站动态抽奖程序', themename='litera', iconphoto='', size=[900, 700], position=None, minsize=None)
 root = ttk.Frame(app, padding=10)
 style = ttk.Style()
 
