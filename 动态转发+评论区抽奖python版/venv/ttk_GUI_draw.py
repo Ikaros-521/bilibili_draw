@@ -272,13 +272,16 @@ def get_repost_user_info(base_info):
 
     temp = referer.split('?')
     temp2 = temp[0].split('/')
-    dynamic_id = temp2[3]
+    dynamic_id = temp2[-1]
 
     temp_num = 0
     # 根据转发数进行循环
     while temp_num < int(base_info["repost"]):
         API_URL = 'https://api.live.bilibili.com/dynamic_repost/v1/dynamic_repost/view_repost?dynamic_id=' + \
                   str(dynamic_id) + "&offset=" + str(temp_num)
+
+        print(API_URL)
+
         ret = requests.get(API_URL, headers=headers1)
 
         # print(ret.text)
