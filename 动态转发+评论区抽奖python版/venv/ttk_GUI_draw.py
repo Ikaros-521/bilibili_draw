@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import json
+import os
 import time
 import random
 import requests
@@ -10,6 +11,7 @@ from ttkbootstrap.constants import *
 from ttkbootstrap.dialogs import Messagebox
 from ttkbootstrap.scrolled import ScrolledText
 
+# version: 5.0
 # python版本：3.8.5
 # 打包 pyinstaller -F 1.py
 # ttk打包 使用auto-py-to-exe，--paths加载ttkbootstrap路径，打包成文件夹
@@ -43,11 +45,15 @@ headers1 = {
     'Content-Type': 'text/plain;charset=UTF-8',
     'Referer': 'https://t.bilibili.com',
     'origin': 'https://t.bilibili.com',
-    # 'cookie': 'l=v',
+    'cookie': "SESSDATA=eeb68e47%2C1699616369%2C1fba2%2A52;",
     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.25 '
                   'Safari/537.36 Core/1.70.3875.400 QQBrowser/10.8.4492.400 '
 }
 
+proxies = {
+  'http': 'http://127.0.0.1:10810',
+  'https': 'http://127.0.0.1:10810'
+}
 
 # 字符串是否是数字
 def is_number(s):
@@ -103,8 +109,9 @@ def get_oid():
         oid = int(temp[1])
 
         API_URL = 'https://api.bilibili.com/x/article/viewinfo?id=' + str(oid) + '&mobi_app=pc&from=web'
-        ret = requests.get(API_URL, headers=headers1)
         try:
+            ret = requests.get(API_URL, headers=headers1, proxies=proxies)
+        
             json1 = ret.json()
             # print(ret.text)
 
@@ -118,11 +125,15 @@ def get_oid():
 
             base_info = {'ret': True, 'oid': oid, 'repost': json1['data']['stats']['share'],
                          'comment': json1['data']['stats']['reply']}
-            print(base_info)
+            # print(base_info)
         except Exception as e:
-            text.insert(END, str(e))
+            text.insert(END, "\n+" + str(e))
             text.update()
             base_info = {'ret': False}
+            text.insert(END, "\n程序将在10秒后退出...")
+            text.update()
+            time.sleep(10)
+            exit(0)
 
         # 设置抽奖类型为 专栏评论
         draw_type = 2
@@ -170,14 +181,24 @@ def get_oid():
         return base_info
 
     API_URL = 'https://api.bilibili.com/x/polymer/web-dynamic/v1/detail?timezone_offset=-480&id=' + dynamic_id
-    ret = requests.get(API_URL, headers=headers1)
-    json1 = ret.json()
-    print(ret.text)
-    # json1 = json.loads(ret)
-    oid = json1["data"]["item"]["basic"]["comment_id_str"]
-    repost = json1["data"]["item"]["modules"]["module_stat"]["forward"]["count"]
-    # oid = json1["data"]["card"]["desc"]["rid"]
-    # repost = json1["data"]["card"]["desc"]["repost"]
+    try:
+        ret = requests.get(API_URL, headers=headers1, proxies=proxies)
+        json1 = ret.json()
+        # print(ret.text)
+        # json1 = json.loads(ret)
+    
+        oid = json1["data"]["item"]["basic"]["comment_id_str"]
+        repost = json1["data"]["item"]["modules"]["module_stat"]["forward"]["count"]
+        # oid = json1["data"]["card"]["desc"]["rid"]
+        # repost = json1["data"]["card"]["desc"]["repost"]
+    except Exception as e:
+        text_str = str(e) + "\n调用api.bilibili.com/x/polymer/web-dynamic/v1/detail 接口返回数据解析失败，可尝试重试，若仍不行，则可能是接口变更导致或网络问题\n"
+        text.insert(END, text_str)
+        text.update()
+        text.insert(END, "\n程序将在10秒后退出...")
+        text.update()
+        time.sleep(10)
+        exit(0)
 
     comment = 0
     # 非视频动态
@@ -189,7 +210,7 @@ def get_oid():
     api_type = json1["data"]["item"]["basic"]["comment_type"]
     # print("oid=" + str(oid))
     base_info = {'ret': True, 'oid': oid, 'repost': repost, 'comment': comment}
-    print(base_info)
+    # print(base_info)
     return base_info
 
 
@@ -224,7 +245,7 @@ def get_data(url, end):
     global text_str
     global text
 
-    ret = requests.get(url, headers=headers1)
+    ret = requests.get(url, headers=headers1, proxies=proxies)
     try:
         json1 = ret.json()
     except Exception as e:
@@ -318,9 +339,10 @@ def get_repost_user_info(base_info):
 
         print(API_URL)
 
-        ret = requests.get(API_URL, headers=headers1)
+        ret = requests.get(API_URL, headers=headers1, proxies=proxies)
 
         # print(ret.text)
+        
         try:
             json1 = ret.json()
         except Exception as e:
@@ -414,13 +436,13 @@ def get_cv_user_info(base_info):
 
         print(API_URL)
 
-        ret = requests.get(API_URL, headers=headers1)
+        ret = requests.get(API_URL, headers=headers1, proxies=proxies)
 
         # print(ret.text)
         try:
             json1 = ret.json()
         except Exception as e:
-            text_str = e + "\n调用api.bilibili.com/x/v2/reply/main " \
+            text_str = str(e) + "\n调用api.bilibili.com/x/v2/reply/main " \
                            "接口返回数据JSON化失败，可尝试重试，若仍不行，则可能是接口变更导致\n "
             text.insert(END, text_str)
             text.update()
@@ -670,4 +692,27 @@ lframe_inner = ttk.Frame(lframe)
 lframe_inner.pack(fill=BOTH, expand=YES, padx=10)
 
 root.pack(fill=BOTH, expand=YES)
+
+# 读取本地配置
+try:
+    with open('config.json') as f:
+        config = json.load(f)
+    
+    if config["proxy"] == "":
+        proxies = None
+    else:
+        proxies["http"] = config["proxy"]
+        proxies["https"] = config["proxy"]
+
+    # 去除proxy键
+    config.pop('proxy')
+    headers1 = config
+except Exception as e:
+    text_str = str(e) + "\n配置文件config.json读取失败，请检查配置填写是否正确，或恢复原始配置。\n程序将在10s后退出..."
+    text.insert(END, text_str)
+    text.update()
+    print(e)
+    time.sleep(10)
+    exit(0)
+
 app.mainloop()
